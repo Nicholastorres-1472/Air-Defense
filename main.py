@@ -5,10 +5,14 @@ from detector import MotionDetector
 
 DEBUG = False
 CAMERA = True
+RECORDING = False
+TIMESTOP = True
+SHOWVIDEO = False
+TIMEDURATION = 5
 testVideo = "Ball.mp4"
-
+    
 # Variable for test video 
-if CAMERA: source = 1 
+if CAMERA: source = 0
 else: source = f"./TestVideos/{testVideo}"  
 
 # Opens Camera/Video and times it
@@ -16,6 +20,14 @@ openTime = time.time()
 cam = cv2.VideoCapture(source)
 endOpenTime = time.time()
 totalOpenTime = endOpenTime - openTime
+
+# Camera settings for recording
+if RECORDING:
+    width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cam.get(cv2.CAP_PROP_FPS)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter('auto_output.mp4', fourcc, fps, (width, height))
 
 # Initializes imshow Timer
 imshowTime = 0
@@ -59,17 +71,21 @@ while True:
 
     # Displays the video feeds | Timed for performance measuring
     t4 = time.time()
-    cv2.imshow('video feed', video)
-    # cv2.imshow('Gray Scale', gray)
-    # cv2.imshow('blurred feed', blurred)
-    # cv2.imshow('Delta feed', frame_delta)
-    # cv2.imshow('thresh feed', thresh)
+    if SHOWVIDEO:
+        cv2.imshow('video feed', video)
+        # cv2.imshow('Gray Scale', gray)
+        # cv2.imshow('blurred feed', blurred)
+        # cv2.imshow('Delta feed', frame_delta)
+        # cv2.imshow('thresh feed', thresh)
     t5 = time.time()
     imshowTime += (t5 - t4)
 
+    t6 = time.time()
+
+
     # allows the program to be exited without "crashing" | reduces performance, comment for increased performance
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    # if cv2.waitKey(1) & 0xFF == ord('q'):
+    #     break
 
     # Measures total frames processed 
     total_frames += 1
@@ -77,8 +93,13 @@ while True:
     # Slows down video for debug purposes
     if DEBUG: time.sleep(0.025)
 
-    # if ((time.time() - startTime) > 15):
-    #     break
+    if TIMESTOP: 
+        if ((time.time() - startTime) > TIMEDURATION):
+            break
+
+    # if recording
+    if RECORDING:
+        out.write(video)
 
 
 # Calculates performance
