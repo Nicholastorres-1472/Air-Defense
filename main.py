@@ -1,32 +1,42 @@
 import time
-import cv2 as cv
+import cv2
 
+from detector import MotionDetector
+
+DEBUG = False
+CAMERA = True
+testVideo = "Ball.mp4"
+
+# Variable for test video 
+if CAMERA: source = 1 
+else: source = f"./TestVideos/{testVideo}"  
+
+# Opens Camera/Video and times it
 openTime = time.time()
-cam = cv.VideoCapture('RollingBall.mp4')
+cam = cv2.VideoCapture(source)
 endOpenTime = time.time()
 totalOpenTime = endOpenTime - openTime
+
+# Initializes imshow Timer
 imshowTime = 0
+
+# Error handling if camera fails to open
 if not cam.isOpened():
     print("Camera could not open")
     exit()
 
-backgroundFrame = None
-
-avg = None
-
-frameCounter = 0
-
+# Initializes performance measuring variables
 total_frames = 0
 startTime = time.time()
 decode_time = 0.0
 math_time = 0.0
 
+# Initializes the motionDetector class from detector.py
+detector = MotionDetector()
+
 while True:
 
-    if frameCounter > 10:
-        frameCounter = 0
-
-    # Reads camera input
+    # Reads camera input | times it for performance measuring.
     t0 = time.time()
     ret, video = cam.read()
     if not ret:
@@ -35,63 +45,43 @@ while True:
     t1 = time.time()
     decode_time += (t1 - t0)
 
-    # Converts raw video input to grayscale
+    # Uses the getBoundingBoxes function from detector.py | times it for performance measuring
     t2 = time.time()
-    gray = cv.cvtColor(video, cv.COLOR_BGR2GRAY)
+    boxes = detector.getBoundingBoxes(frame=video, minArea=1000)
 
-    # Blurs the grayed video input
-    blurred = cv.GaussianBlur(gray, (21,21), 0)
-
-    if avg is None: 
-        avg = blurred.copy().astype("float")
-        continue
-
-    cv.accumulateWeighted(blurred, avg, 0.01)
-
-    backgroundFrame = cv.convertScaleAbs(avg)
-
-    frame_delta = cv.absdiff(backgroundFrame, blurred)
-
-    _, thresh = cv.threshold(frame_delta, 25, 255, cv.THRESH_BINARY)
-
-    thresh = cv.dilate(thresh, None, iterations=2)
-
-    contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
-    for contour in contours:
-        print(f"Size:{cv.contourArea(contour)}")
-        if cv.contourArea(contour) < 1000:
-            continue
-
-        x, y, h, w = cv.boundingRect(contour)
-
-        cv.rectangle(video, (x,y), (x + w, y + h), (0, 255, 0), 2)
+    # Draws the bounding boxes on the raw video input 
+    for (x,y, h, w) in boxes:
+        cv2.rectangle(video, (x,y), (x + w, y + h), (0, 255, 0), 2)
 
     t3 = time.time()
     math_time += (t3 - t2)
 
+
+    # Displays the video feeds | Timed for performance measuring
     t4 = time.time()
-    cv.imshow('video feed', video)
-    # cv.imshow('Gray Scale', gray)
-    # cv.imshow('blurred feed', blurred)
-    # cv.imshow('Delta feed', frame_delta)
-    # cv.imshow('thresh feed', thresh)
+    cv2.imshow('video feed', video)
+    # cv2.imshow('Gray Scale', gray)
+    # cv2.imshow('blurred feed', blurred)
+    # cv2.imshow('Delta feed', frame_delta)
+    # cv2.imshow('thresh feed', thresh)
     t5 = time.time()
     imshowTime += (t5 - t4)
 
-
-    if cv.waitKey(1) & 0xFF == ord('q'):
+    # allows the program to be exited without "crashing" | reduces performance, comment for increased performance
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+    # Measures total frames processed 
     total_frames += 1
 
-    frameCounter += 1
-
-    time.sleep(0.025)
+    # Slows down video for debug purposes
+    if DEBUG: time.sleep(0.025)
 
     # if ((time.time() - startTime) > 15):
     #     break
 
+
+# Calculates performance
 endTime = time.time()
 totalTime = endTime - startTime
 averageFPS = total_frames / totalTime
@@ -105,4 +95,4 @@ print(f"Total Math Time: {math_time:.2f} seconds")
 print(f"Total imshow Time: {imshowTime:.2f} seconds")
 
 cam.release()
-cv.destroyAllWindows()
+cv2.destroyAllWindows()
