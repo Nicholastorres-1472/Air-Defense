@@ -9,6 +9,7 @@ RECORDING = False
 TIMESTOP = True
 SHOWVIDEO = False
 TIMEDURATION = 5
+MINAREA = 200
 testVideo = "Ball.mp4"
     
 # Variable for test video 
@@ -42,6 +43,7 @@ total_frames = 0
 startTime = time.time()
 decode_time = 0.0
 math_time = 0.0
+recordingTime = 0.0
 
 # Initializes the motionDetector class from detector.py
 detector = MotionDetector()
@@ -59,7 +61,7 @@ while True:
 
     # Uses the getBoundingBoxes function from detector.py | times it for performance measuring
     t2 = time.time()
-    boxes = detector.getBoundingBoxes(frame=video, minArea=1000)
+    boxes = detector.getBoundingBoxes(frame=video, minArea=MINAREA)
 
     # Draws the bounding boxes on the raw video input 
     for (x,y, h, w) in boxes:
@@ -80,9 +82,6 @@ while True:
     t5 = time.time()
     imshowTime += (t5 - t4)
 
-    t6 = time.time()
-
-
     # allows the program to be exited without "crashing" | reduces performance, comment for increased performance
     # if cv2.waitKey(1) & 0xFF == ord('q'):
     #     break
@@ -97,9 +96,12 @@ while True:
         if ((time.time() - startTime) > TIMEDURATION):
             break
 
+    t6 = time.time()
     # if recording
     if RECORDING:
         out.write(video)
+    t7 = time.time()
+    recordingTime += (t7 - t6)
 
 
 # Calculates performance
@@ -114,6 +116,7 @@ print(f"Total Opening Time: {totalOpenTime:.2f} seconds")
 print(f"Total Decode Time (cap.read): {decode_time:.2f} seconds")
 print(f"Total Math Time: {math_time:.2f} seconds")
 print(f"Total imshow Time: {imshowTime:.2f} seconds")
+print(f"Total Recording Time: {recordingTime:.2f} seconds")
 
 cam.release()
 cv2.destroyAllWindows()
