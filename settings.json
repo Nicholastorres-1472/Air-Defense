@@ -1,0 +1,16 @@
+{
+    "DEBUG": false,
+    "CAMERA": false,
+    "CAMERA_SOURCE": 0,
+    "RECORDING": false,
+    "TIMESTOP": true,
+    "SHOWVIDEO": true,
+    "TIMEDURATION": 15,
+    "MINAREA": 200,
+    "testVideo": "FlyingBall.MOV",
+    "detectorSettings": {
+        "history": 100,
+        "varThreshhold": 32,
+        "shadow": false
+    }
+}

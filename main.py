@@ -1,19 +1,23 @@
 import time
 import cv2
+import json
 
 from detector import MotionDetector
 
-DEBUG = False
-CAMERA = True
-RECORDING = False
-TIMESTOP = True
-SHOWVIDEO = False
-TIMEDURATION = 5
-MINAREA = 200
-testVideo = "Ball.mp4"
+with open('settings.json', 'r') as file:
+    settings=json.load(file)
+
+DEBUG = settings["DEBUG"]
+CAMERA = settings["CAMERA"]
+RECORDING = settings["RECORDING"]
+TIMESTOP = settings["TIMESTOP"]
+SHOWVIDEO = settings["SHOWVIDEO"]
+TIMEDURATION = settings["TIMEDURATION"]
+MINAREA = settings["MINAREA"]
+testVideo = settings["testVideo"]
     
 # Variable for test video 
-if CAMERA: source = 0
+if CAMERA: source = settings["CAMERA_SOURCE"]
 else: source = f"./TestVideos/{testVideo}"  
 
 # Opens Camera/Video and times it
@@ -43,10 +47,11 @@ total_frames = 0
 startTime = time.time()
 decode_time = 0.0
 math_time = 0.0
+draw_time = 0.0
 recordingTime = 0.0
 
 # Initializes the motionDetector class from detector.py
-detector = MotionDetector()
+detector = MotionDetector(history=settings["detectorSettings"]["history"], varThreshhold=settings["detectorSettings"]["varThreshhold"], shadow=settings["detectorSettings"]["shadow"])
 
 while True:
 
@@ -62,46 +67,49 @@ while True:
     # Uses the getBoundingBoxes function from detector.py | times it for performance measuring
     t2 = time.time()
     boxes = detector.getBoundingBoxes(frame=video, minArea=MINAREA)
+    t3 = time.time()
+    math_time += (t3-t2)
 
+    t4 = time.time()
     # Draws the bounding boxes on the raw video input 
     for (x,y, h, w) in boxes:
+        area = (w*h)
         cv2.rectangle(video, (x,y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(video, f"{area}", (x,y+h+24), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0)) 
 
-    t3 = time.time()
-    math_time += (t3 - t2)
+    t5= time.time()
+    draw_time += (t5 - t4)
 
 
     # Displays the video feeds | Timed for performance measuring
-    t4 = time.time()
+    t6 = time.time()
     if SHOWVIDEO:
         cv2.imshow('video feed', video)
-        # cv2.imshow('Gray Scale', gray)
-        # cv2.imshow('blurred feed', blurred)
-        # cv2.imshow('Delta feed', frame_delta)
-        # cv2.imshow('thresh feed', thresh)
-    t5 = time.time()
-    imshowTime += (t5 - t4)
 
-    # allows the program to be exited without "crashing" | reduces performance, comment for increased performance
-    # if cv2.waitKey(1) & 0xFF == ord('q'):
-    #     break
+    # allows the program to be exited without "crashing" also allows imShow window to appear | reduces performance
+    if SHOWVIDEO:
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    t7 = time.time()
+    imshowTime += (t7 - t5)
 
     # Measures total frames processed 
     total_frames += 1
 
     # Slows down video for debug purposes
-    if DEBUG: time.sleep(0.025)
+    if DEBUG: time.sleep(0.05)
 
     if TIMESTOP: 
         if ((time.time() - startTime) > TIMEDURATION):
             break
 
-    t6 = time.time()
+    t8 = time.time()
     # if recording
     if RECORDING:
         out.write(video)
-    t7 = time.time()
-    recordingTime += (t7 - t6)
+    t9 = time.time()
+    recordingTime += (t9 - t8)
 
 
 # Calculates performance
@@ -115,6 +123,7 @@ print(f"FPS: {averageFPS:.2f}")
 print(f"Total Opening Time: {totalOpenTime:.2f} seconds")
 print(f"Total Decode Time (cap.read): {decode_time:.2f} seconds")
 print(f"Total Math Time: {math_time:.2f} seconds")
+print(f"Total Draw Time: {draw_time:.2f} seconds")
 print(f"Total imshow Time: {imshowTime:.2f} seconds")
 print(f"Total Recording Time: {recordingTime:.2f} seconds")
 

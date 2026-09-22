@@ -1,36 +1,21 @@
 import cv2
 
 class MotionDetector:
-    def __init__(self):
-        self.avg = None
+    def __init__(self, history, varThreshhold=16, shadow=False,):
+        self.fgbg = cv2.createBackgroundSubtractorMOG2(
+            history=history,
+            varThreshold=varThreshhold,
+            detectShadows=shadow
+        )
     
     def getBoundingBoxes(self, frame, minArea):
-        self.boundingBoxes = []
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        blurred = cv2.GaussianBlur(gray, (21,21), 0)
-
-        if self.avg is None:
-            self.avg = blurred.copy().astype("float")
-
-        cv2.accumulateWeighted(blurred, self.avg, 0.01)
-
-        backgroundFrame = cv2.convertScaleAbs(self.avg)
-
-        frameDelta = cv2.absdiff(backgroundFrame, blurred)
-
-        _, thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)
-
+        thresh = self.fgbg.apply(frame)
+        cv2.imshow('MOG2',thresh)
         thresh = cv2.dilate(thresh, None, iterations=2)
-
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        boxes = []
         for contour in contours:
-            if cv2.contourArea(contour) < minArea:
-                continue
-
-            x, y, h, w = cv2.boundingRect(contour)
-            self.boundingBoxes.append((x,y,h,w))
-
-        return self.boundingBoxes
+            if cv2.contourArea(contour) >= minArea:
+                boxes.append(cv2.boundingRect(contour))
+        return boxes
